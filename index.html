@@ -1,329 +1,696 @@
-<!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Meteorite Defense Simulation</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background: black;
-      color: white;
-      font-family: Arial, sans-serif;
-    }
-    #container {
-      width: 100vw;
-      height: 100vh;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meteorite Defense Simulation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #ui-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            min-width: 300px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        #status-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            min-width: 250px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            color: #ff6b35;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            text-align: center;
+        }
+        
+        .solution-group {
+            margin: 15px 0;
+        }
+        
+        .solution-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .solution-btn:hover {
+            background: linear-gradient(45deg, #f7931e, #ff6b35);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+        }
+        
+        .solution-btn:active {
+            transform: translateY(0);
+        }
+        
+        .control-group {
+            margin: 15px 0;
+        }
+        
+        label {
+            display: block;
+            margin: 8px 0 4px 0;
+            font-size: 0.9em;
+            color: #ccc;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin: 5px 0;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .status-value {
+            color: #ff6b35;
+            font-weight: bold;
+        }
+        
+        .reset-btn {
+            background: linear-gradient(45deg, #333, #666);
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .reset-btn:hover {
+            background: linear-gradient(45deg, #666, #999);
+            transform: translateY(-1px);
+        }
+        
+        #outcome-display {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px 30px;
+            border-radius: 10px;
+            border: 2px solid;
+            font-size: 1.2em;
+            font-weight: bold;
+            text-align: center;
+            display: none;
+            backdrop-filter: blur(10px);
+        }
+        
+        .success {
+            border-color: #00ff00;
+            color: #00ff00;
+        }
+        
+        .failure {
+            border-color: #ff0000;
+            color: #ff0000;
+        }
+        
+        .warning {
+            border-color: #ffaa00;
+            color: #ffaa00;
+        }
+    </style>
 </head>
 <body>
-  <div id="container"></div>
+    <div id="container"></div>
+    
+    <div id="ui-panel">
+        <h1>🛡️ Earth Defense</h1>
+        
+        <div class="solution-group">
+            <h3>Deflection Methods:</h3>
+            <button class="solution-btn" onclick="applyNuclearImpact()">Nuclear Impact</button>
+            <button class="solution-btn" onclick="applyKineticImpactor()">Kinetic Impactor</button>
+            <button class="solution-btn" onclick="applyIonBeam()">Ion Beam Push</button>
+            <button class="solution-btn" onclick="applyGravityTractor()">Gravity Tractor</button>
+            <button class="solution-btn" onclick="applySolarSail()">Solar Sail</button>
+        </div>
+        
+        <div class="control-group">
+            <label>Intervention Distance:</label>
+            <input type="range" id="distance" min="10" max="100" value="50">
+            <span id="distance-value">50 million km</span>
+        </div>
+        
+        <div class="control-group">
+            <label>Solution Power:</label>
+            <input type="range" id="power" min="1" max="10" value="5">
+            <span id="power-value">5</span>
+        </div>
+        
+        <button class="reset-btn" onclick="resetSimulation()">🔄 Reset Simulation</button>
+    </div>
+    
+    <div id="status-panel">
+        <h3>Status</h3>
+        <div class="status-item">
+            <span>Distance to Earth:</span>
+            <span class="status-value" id="earth-distance">100M km</span>
+        </div>
+        <div class="status-item">
+            <span>Velocity:</span>
+            <span class="status-value" id="velocity">30 km/s</span>
+        </div>
+        <div class="status-item">
+            <span>Trajectory Deviation:</span>
+            <span class="status-value" id="deviation">0°</span>
+        </div>
+        <div class="status-item">
+            <span>Time to Impact:</span>
+            <span class="status-value" id="time-impact">--</span>
+        </div>
+        <div class="status-item">
+            <span>Mission Status:</span>
+            <span class="status-value" id="mission-status">Monitoring</span>
+        </div>
+    </div>
+    
+    <div id="outcome-display"></div>
 
-<script>
-let scene, camera, renderer, meteorite, earth, clouds, stars;
-let meteoritePath = [];
-let animationId;
-let simulationActive = true;
-let interventionApplied = false;
-let meteoritePosition = { x: -200, y: 0, z: 0 };
-let meteoriteVelocity = { x: 2, y: 0, z: 0 };
-let earthPosition = { x: 100, y: 0, z: 0 };
-let deviation = 0;
-let timeStep = 0.1;
-let totalTime = 0;
-window.interventionIntervals = [];
-
-function init() {
-  // Scene setup
-  scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-  renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  document.getElementById('container').appendChild(renderer.domElement);
-
-  // Lighting
-  const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
-  scene.add(ambientLight);
-
-  const sunLight = new THREE.DirectionalLight(0xffffff, 1);
-  sunLight.position.set(-300, 100, 100);
-  scene.add(sunLight);
-
-  // Background stars
-  createStars();
-
-  // Earth
-  createEarth();
-
-  // Meteorite
-  createMeteorite();
-
-  // Camera
-  camera.position.set(0, 50, 150);
-  camera.lookAt(0, 0, 0);
-
-  // Start animation
-  animate();
-}
-
-function createStars() {
-  const starGeometry = new THREE.BufferGeometry();
-  const starCount = 5000;
-  const positions = new Float32Array(starCount * 3);
-  for (let i = 0; i < starCount * 3; i++) {
-    positions[i] = (Math.random() - 0.5) * 2000;
-  }
-  starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 1 });
-  stars = new THREE.Points(starGeometry, starMaterial);
-  scene.add(stars);
-}
-
-function createEarth() {
-  const loader = new THREE.TextureLoader();
-
-  const earthTexture = loader.load("https://threejsfundamentals.org/threejs/resources/images/earth-day.jpg");
-  const bumpMap = loader.load("https://threejsfundamentals.org/threejs/resources/images/earth-bump.jpg");
-  const specularMap = loader.load("https://threejsfundamentals.org/threejs/resources/images/earth-specular.gif");
-  const cloudTexture = loader.load("https://threejsfundamentals.org/threejs/resources/images/earth-clouds.png");
-
-  const earthGeometry = new THREE.SphereGeometry(8, 64, 64);
-  const earthMaterial = new THREE.MeshPhongMaterial({
-    map: earthTexture,
-    bumpMap: bumpMap,
-    bumpScale: 0.3,
-    specularMap: specularMap,
-    specular: new THREE.Color('grey'),
-    shininess: 10
-  });
-  earth = new THREE.Mesh(earthGeometry, earthMaterial);
-  earth.position.set(earthPosition.x, earthPosition.y, earthPosition.z);
-  scene.add(earth);
-
-  // Clouds
-  const cloudGeometry = new THREE.SphereGeometry(8.2, 64, 64);
-  const cloudMaterial = new THREE.MeshPhongMaterial({
-    map: cloudTexture,
-    transparent: true,
-    opacity: 0.4,
-    depthWrite: false
-  });
-  clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
-  clouds.position.copy(earth.position);
-  scene.add(clouds);
-
-  // Atmosphere glow
-  const glowGeometry = new THREE.SphereGeometry(9, 64, 64);
-  const glowMaterial = new THREE.MeshBasicMaterial({
-    color: 0x00aaff,
-    transparent: true,
-    opacity: 0.2
-  });
-  const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-  glow.position.copy(earth.position);
-  scene.add(glow);
-}
-
-function createMeteorite() {
-  const loader = new THREE.TextureLoader();
-  const rockTexture = loader.load("https://threejsfundamentals.org/threejs/resources/images/rock.jpg");
-
-  const meteoriteGeometry = new THREE.SphereGeometry(2, 32, 32);
-  const meteoriteMaterial = new THREE.MeshPhongMaterial({
-    map: rockTexture,
-    bumpMap: rockTexture,
-    bumpScale: 0.5,
-    shininess: 5
-  });
-  meteorite = new THREE.Mesh(meteoriteGeometry, meteoriteMaterial);
-  meteorite.position.set(meteoritePosition.x, meteoritePosition.y, meteoritePosition.z);
-  scene.add(meteorite);
-
-  // Glow (outer fiery aura)
-  const glowGeometry = new THREE.SphereGeometry(2.6, 32, 32);
-  const glowMaterial = new THREE.MeshBasicMaterial({
-    color: 0xff6600,
-    transparent: true,
-    opacity: 0.5
-  });
-  meteorite.glow = new THREE.Mesh(glowGeometry, glowMaterial);
-  meteorite.add(meteorite.glow);
-
-  // Trail
-  const trailGeometry = new THREE.BufferGeometry();
-  const trailMaterial = new THREE.LineBasicMaterial({
-    color: 0xffaa00,
-    transparent: true,
-    opacity: 0.9
-  });
-  meteorite.trail = new THREE.Line(trailGeometry, trailMaterial);
-  scene.add(meteorite.trail);
-}
-
-function animate() {
-  if (!simulationActive) return;
-  animationId = requestAnimationFrame(animate);
-
-  // Meteorite movement
-  meteoritePosition.x += meteoriteVelocity.x * timeStep;
-  meteoritePosition.y += meteoriteVelocity.y * timeStep;
-  meteoritePosition.z += meteoriteVelocity.z * timeStep;
-  if (meteorite) meteorite.position.set(meteoritePosition.x, meteoritePosition.y, meteoritePosition.z);
-
-  // Update fiery glow (brighter when closer to Earth)
-  if (meteorite) {
-    const distance = meteorite.position.distanceTo(earth.position);
-    const glowStrength = Math.max(0.1, 1 - distance / 250); 
-    meteorite.glow.material.opacity = glowStrength;
-    meteorite.glow.scale.setScalar(1 + glowStrength * 2);
-  }
-
-  // Trail
-  meteoritePath.push({ ...meteoritePosition });
-  if (meteoritePath.length > 80) meteoritePath.shift();
-  updateTrail();
-
-  // Rotate Earth & clouds
-  earth.rotation.y += 0.003;
-  clouds.rotation.y += 0.004;
-  stars.rotation.y += 0.0003;
-
-  renderer.render(scene, camera);
-}
-
-function updateTrail() {
-  if (!meteorite) return;
-  const positions = [];
-  const colors = [];
-  const color = new THREE.Color();
-
-  meteoritePath.forEach((p, i) => {
-    positions.push(p.x, p.y, p.z);
-    const t = i / meteoritePath.length;
-    color.setHSL(0.1 + 0.1 * t, 1.0, 0.5 + 0.3 * (1 - t));
-    colors.push(color.r, color.g, color.b);
-  });
-
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  const trailMaterial = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 });
-
-  meteorite.trail.geometry = geometry;
-  meteorite.trail.material = trailMaterial;
-}
-
-function createExplosion(position) {
-  const particles = new THREE.Group();
-  const particleCount = 200;
-  const geometry = new THREE.SphereGeometry(0.1, 8, 8);
-  const material = new THREE.MeshBasicMaterial({ color: 0xff5500 });
-
-  for (let i = 0; i < particleCount; i++) {
-    const particle = new THREE.Mesh(geometry, material.clone());
-    particle.position.copy(position);
-    particle.velocity = new THREE.Vector3(
-      (Math.random() - 0.5) * 4,
-      (Math.random() - 0.5) * 4,
-      (Math.random() - 0.5) * 4
-    );
-    particles.add(particle);
-  }
-
-  scene.add(particles);
-
-  let life = 0;
-  const interval = setInterval(() => {
-    life += 1;
-    particles.children.forEach(p => {
-      p.position.add(p.velocity);
-      p.material.opacity = Math.max(0, 1 - life / 60);
-    });
-    if (life > 60) {
-      scene.remove(particles);
-      clearInterval(interval);
-    }
-  }, 30);
-}
-
-function createImpactEffect(position) {
-  // Flash on Earth
-  const flashGeometry = new THREE.SphereGeometry(8.2, 64, 64);
-  const flashMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffff66,
-    transparent: true,
-    opacity: 0.8,
-    blending: THREE.AdditiveBlending
-  });
-  const flash = new THREE.Mesh(flashGeometry, flashMaterial);
-  flash.position.copy(earth.position);
-  scene.add(flash);
-
-  let flashLife = 0;
-  const flashInterval = setInterval(() => {
-    flash.scale.setScalar(1 + flashLife * 0.05);
-    flash.material.opacity = Math.max(0, 0.8 - flashLife * 0.05);
-    flashLife++;
-    if (flashLife > 20) {
-      scene.remove(flash);
-      clearInterval(flashInterval);
-    }
-  }, 50);
-
-  // Shockwave ring
-  const ringGeometry = new THREE.RingGeometry(0.1, 0.5, 64);
-  const ringMaterial = new THREE.MeshBasicMaterial({
-    color: 0xff3300,
-    transparent: true,
-    opacity: 0.8,
-    side: THREE.DoubleSide,
-    blending: THREE.AdditiveBlending
-  });
-  const ring = new THREE.Mesh(ringGeometry, ringMaterial);
-  ring.position.copy(earth.position);
-  ring.lookAt(camera.position);
-  scene.add(ring);
-
-  let shockLife = 0;
-  const shockInterval = setInterval(() => {
-    const scale = 1 + shockLife * 0.2;
-    ring.scale.set(scale, scale, scale);
-    ring.material.opacity = Math.max(0, 0.8 - shockLife * 0.05);
-    shockLife++;
-    if (shockLife > 25) {
-      scene.remove(ring);
-      clearInterval(shockInterval);
-    }
-  }, 50);
-}
-
-function destroyMeteorite(success = true) {
-  if (!meteorite) return;
-  createExplosion(meteorite.position.clone());
-  if (!success) {
-    createImpactEffect(earth.position.clone());
-  }
-  scene.remove(meteorite);
-  scene.remove(meteorite.trail);
-  meteorite = null;
-
-  if (success) {
-    console.log("✅ Meteorite burned up before impact!");
-  } else {
-    console.log("💥 Meteorite impacted Earth with a shockwave!");
-  }
-}
-
-window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-init();
-</script>
+    <script>
+        let scene, camera, renderer, meteorite, earth, stars;
+        let meteoritePath = [];
+        let originalPath = [];
+        let animationId;
+        let simulationActive = true;
+        let interventionApplied = false;
+        
+        // Physics parameters
+        let meteoritePosition = { x: -200, y: 0, z: 0 };
+        let meteoriteVelocity = { x: 2, y: 0, z: 0 };
+        let earthPosition = { x: 100, y: 0, z: 0 };
+        let deviation = 0;
+        let timeStep = 0.1;
+        let totalTime = 0;
+        
+        function init() {
+            // Scene setup
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000000, 0);
+            document.getElementById('container').appendChild(renderer.domElement);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+            scene.add(ambientLight);
+            
+            const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+            sunLight.position.set(-300, 100, 100);
+            sunLight.castShadow = true;
+            scene.add(sunLight);
+            
+            // Create stars
+            createStars();
+            
+            // Create Earth
+            createEarth();
+            
+            // Create meteorite
+            createMeteorite();
+            
+            // Camera position
+            camera.position.set(0, 50, 150);
+            camera.lookAt(0, 0, 0);
+            
+            // Store original path
+            for (let i = 0; i < 200; i++) {
+                const t = i * 0.5;
+                originalPath.push({
+                    x: meteoritePosition.x + meteoriteVelocity.x * t,
+                    y: meteoritePosition.y + meteoriteVelocity.y * t,
+                    z: meteoritePosition.z + meteoriteVelocity.z * t
+                });
+            }
+            
+            // Start animation
+            animate();
+            
+            // Update UI
+            updateControls();
+        }
+        
+        function createStars() {
+            const starGeometry = new THREE.BufferGeometry();
+            const starCount = 10000;
+            const positions = new Float32Array(starCount * 3);
+            
+            for (let i = 0; i < starCount * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 2000;
+                positions[i + 1] = (Math.random() - 0.5) * 2000;
+                positions[i + 2] = (Math.random() - 0.5) * 2000;
+            }
+            
+            starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const starMaterial = new THREE.PointsMaterial({ 
+                color: 0xffffff, 
+                size: 2,
+                sizeAttenuation: false
+            });
+            
+            stars = new THREE.Points(starGeometry, starMaterial);
+            scene.add(stars);
+        }
+        
+        function createEarth() {
+            const earthGeometry = new THREE.SphereGeometry(8, 32, 32);
+            const earthMaterial = new THREE.MeshPhongMaterial({
+                color: 0x4f94cd,
+                shininess: 100
+            });
+            
+            earth = new THREE.Mesh(earthGeometry, earthMaterial);
+            earth.position.set(earthPosition.x, earthPosition.y, earthPosition.z);
+            scene.add(earth);
+            
+            // Earth atmosphere
+            const atmosphereGeometry = new THREE.SphereGeometry(9, 32, 32);
+            const atmosphereMaterial = new THREE.MeshPhongMaterial({
+                color: 0x87ceeb,
+                transparent: true,
+                opacity: 0.3
+            });
+            
+            const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+            atmosphere.position.copy(earth.position);
+            scene.add(atmosphere);
+            
+            // Add Earth glow
+            const glowGeometry = new THREE.SphereGeometry(12, 32, 32);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: 0x00aaff,
+                transparent: true,
+                opacity: 0.1
+            });
+            
+            const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            glow.position.copy(earth.position);
+            scene.add(glow);
+        }
+        
+        function createMeteorite() {
+            const meteoriteGeometry = new THREE.SphereGeometry(2, 16, 16);
+            const meteoriteMaterial = new THREE.MeshPhongMaterial({
+                color: 0x8b4513,
+                shininess: 30
+            });
+            
+            meteorite = new THREE.Mesh(meteoriteGeometry, meteoriteMaterial);
+            meteorite.position.set(meteoritePosition.x, meteoritePosition.y, meteoritePosition.z);
+            scene.add(meteorite);
+            
+            // Add trail effect
+            const trailGeometry = new THREE.BufferGeometry();
+            const trailMaterial = new THREE.LineBasicMaterial({
+                color: 0xff4444,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            meteorite.trail = new THREE.Line(trailGeometry, trailMaterial);
+            scene.add(meteorite.trail);
+        }
+        
+        function updateControls() {
+            document.getElementById('distance').oninput = function() {
+                document.getElementById('distance-value').textContent = this.value + ' million km';
+            };
+            
+            document.getElementById('power').oninput = function() {
+                document.getElementById('power-value').textContent = this.value;
+            };
+        }
+        
+        function animate() {
+            if (!simulationActive) return;
+            
+            animationId = requestAnimationFrame(animate);
+            
+            // Update meteorite position
+            meteoritePosition.x += meteoriteVelocity.x * timeStep;
+            meteoritePosition.y += meteoriteVelocity.y * timeStep;
+            meteoritePosition.z += meteoriteVelocity.z * timeStep;
+            
+            meteorite.position.set(meteoritePosition.x, meteoritePosition.y, meteoritePosition.z);
+            
+            // Update trail
+            meteoritePath.push({ ...meteoritePosition });
+            if (meteoritePath.length > 50) meteoritePath.shift();
+            
+            updateTrail();
+            
+            // Update status
+            updateStatus();
+            
+            // Check for collision or miss
+            checkOutcome();
+            
+            // Rotate Earth
+            earth.rotation.y += 0.01;
+            
+            // Rotate stars slowly
+            stars.rotation.y += 0.0005;
+            
+            totalTime += timeStep;
+            
+            renderer.render(scene, camera);
+        }
+        
+        function updateTrail() {
+            const positions = [];
+            meteoritePath.forEach(point => {
+                positions.push(point.x, point.y, point.z);
+            });
+            
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            meteorite.trail.geometry = geometry;
+        }
+        
+        function updateStatus() {
+            const distance = Math.sqrt(
+                Math.pow(meteoritePosition.x - earthPosition.x, 2) +
+                Math.pow(meteoritePosition.y - earthPosition.y, 2) +
+                Math.pow(meteoritePosition.z - earthPosition.z, 2)
+            );
+            
+            const velocity = Math.sqrt(
+                Math.pow(meteoriteVelocity.x, 2) +
+                Math.pow(meteoriteVelocity.y, 2) +
+                Math.pow(meteoriteVelocity.z, 2)
+            );
+            
+            document.getElementById('earth-distance').textContent = (distance * 0.5).toFixed(1) + 'M km';
+            document.getElementById('velocity').textContent = (velocity * 15).toFixed(1) + ' km/s';
+            document.getElementById('deviation').textContent = deviation.toFixed(2) + '°';
+            
+            if (distance > 0 && velocity > 0) {
+                const timeToImpact = distance / velocity;
+                document.getElementById('time-impact').textContent = (timeToImpact * 5).toFixed(1) + ' days';
+            }
+            
+            if (interventionApplied) {
+                document.getElementById('mission-status').textContent = 'Intervention Active';
+            } else {
+                document.getElementById('mission-status').textContent = 'Monitoring';
+            }
+        }
+        
+        function checkOutcome() {
+            const distance = Math.sqrt(
+                Math.pow(meteoritePosition.x - earthPosition.x, 2) +
+                Math.pow(meteoritePosition.y - earthPosition.y, 2) +
+                Math.pow(meteoritePosition.z - earthPosition.z, 2)
+            );
+            
+            if (distance < 15) {
+                // Impact!
+                showOutcome('🌍💥 IMPACT! Mission Failed!', 'failure');
+                simulationActive = false;
+            } else if (meteoritePosition.x > earthPosition.x + 50) {
+                // Missed Earth
+                if (Math.abs(meteoritePosition.y) > 20 || Math.abs(meteoritePosition.z) > 20) {
+                    showOutcome('🎯✅ SUCCESS! Earth is Safe!', 'success');
+                    simulationActive = false;
+                }
+            }
+        }
+        
+        function showOutcome(message, type) {
+            const outcomeDiv = document.getElementById('outcome-display');
+            outcomeDiv.textContent = message;
+            outcomeDiv.className = type;
+            outcomeDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                outcomeDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        function applyNuclearImpact() {
+            const distance = parseInt(document.getElementById('distance').value);
+            const power = parseInt(document.getElementById('power').value);
+            
+            if (meteoritePosition.x > -distance * 2) {
+                showOutcome('⚠️ Too close for nuclear option!', 'warning');
+                return;
+            }
+            
+            interventionApplied = true;
+            const effect = power * 0.5;
+            meteoriteVelocity.y += effect * 0.3;
+            meteoriteVelocity.z += (Math.random() - 0.5) * effect * 0.2;
+            deviation += effect * 2;
+            
+            // Visual effect
+            createExplosion(meteorite.position);
+        }
+        
+        function applyKineticImpactor() {
+            const distance = parseInt(document.getElementById('distance').value);
+            const power = parseInt(document.getElementById('power').value);
+            
+            if (meteoritePosition.x > -distance * 1.5) {
+                showOutcome('⚠️ Impactor needs more distance!', 'warning');
+                return;
+            }
+            
+            interventionApplied = true;
+            const effect = power * 0.3;
+            meteoriteVelocity.y += effect * 0.4;
+            meteoriteVelocity.x *= 0.95; // Slight velocity reduction
+            deviation += effect * 1.5;
+            
+            createImpact(meteorite.position);
+        }
+        
+        function applyIonBeam() {
+            const power = parseInt(document.getElementById('power').value);
+            
+            interventionApplied = true;
+            const effect = power * 0.1;
+            
+            // Gradual continuous push
+            setInterval(() => {
+                if (simulationActive) {
+                    meteoriteVelocity.y += effect * 0.05;
+                    deviation += effect * 0.3;
+                }
+            }, 100);
+            
+            createBeamEffect(meteorite.position);
+        }
+        
+        function applyGravityTractor() {
+            const power = parseInt(document.getElementById('power').value);
+            
+            interventionApplied = true;
+            const effect = power * 0.05;
+            
+            // Very gradual but continuous pull
+            setInterval(() => {
+                if (simulationActive) {
+                    meteoriteVelocity.y += effect * 0.02;
+                    meteoriteVelocity.z += (Math.random() - 0.5) * effect * 0.01;
+                    deviation += effect * 0.2;
+                }
+            }, 200);
+        }
+        
+        function applySolarSail() {
+            const power = parseInt(document.getElementById('power').value);
+            
+            interventionApplied = true;
+            const effect = power * 0.08;
+            
+            // Continuous solar pressure
+            setInterval(() => {
+                if (simulationActive) {
+                    meteoriteVelocity.y += effect * 0.03;
+                    meteoriteVelocity.x *= 1.01; // Slight acceleration
+                    deviation += effect * 0.4;
+                }
+            }, 150);
+            
+            createSolarEffect(meteorite.position);
+        }
+        
+        function createExplosion(position) {
+            const explosionGeometry = new THREE.SphereGeometry(5, 16, 16);
+            const explosionMaterial = new THREE.MeshBasicMaterial({
+                color: 0xff4400,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            const explosion = new THREE.Mesh(explosionGeometry, explosionMaterial);
+            explosion.position.copy(position);
+            scene.add(explosion);
+            
+            // Animate explosion
+            let scale = 1;
+            const explosionAnimation = setInterval(() => {
+                scale += 0.3;
+                explosion.scale.set(scale, scale, scale);
+                explosion.material.opacity -= 0.1;
+                
+                if (explosion.material.opacity <= 0) {
+                    scene.remove(explosion);
+                    clearInterval(explosionAnimation);
+                }
+            }, 50);
+        }
+        
+        function createImpact(position) {
+            const impactGeometry = new THREE.SphereGeometry(2, 16, 16);
+            const impactMaterial = new THREE.MeshBasicMaterial({
+                color: 0x00ff00,
+                transparent: true,
+                opacity: 1
+            });
+            
+            const impact = new THREE.Mesh(impactGeometry, impactMaterial);
+            impact.position.copy(position);
+            scene.add(impact);
+            
+            setTimeout(() => scene.remove(impact), 2000);
+        }
+        
+        function createBeamEffect(position) {
+            const beamGeometry = new THREE.CylinderGeometry(0.2, 0.2, 100, 8);
+            const beamMaterial = new THREE.MeshBasicMaterial({
+                color: 0x00ffff,
+                transparent: true,
+                opacity: 0.6
+            });
+            
+            const beam = new THREE.Mesh(beamGeometry, beamMaterial);
+            beam.position.set(position.x - 50, position.y, position.z);
+            beam.rotation.z = Math.PI / 2;
+            scene.add(beam);
+            
+            setTimeout(() => scene.remove(beam), 3000);
+        }
+        
+        function createSolarEffect(position) {
+            const particles = [];
+            for (let i = 0; i < 50; i++) {
+                const particleGeometry = new THREE.SphereGeometry(0.1, 4, 4);
+                const particleMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xffff00,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                
+                const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+                particle.position.set(
+                    position.x + (Math.random() - 0.5) * 10,
+                    position.y + (Math.random() - 0.5) * 10,
+                    position.z + (Math.random() - 0.5) * 10
+                );
+                
+                scene.add(particle);
+                particles.push(particle);
+            }
+            
+            setTimeout(() => {
+                particles.forEach(p => scene.remove(p));
+            }, 2000);
+        }
+        
+        function resetSimulation() {
+            // Reset positions and velocities
+            meteoritePosition = { x: -200, y: 0, z: 0 };
+            meteoriteVelocity = { x: 2, y: 0, z: 0 };
+            deviation = 0;
+            totalTime = 0;
+            meteoritePath = [];
+            interventionApplied = false;
+            simulationActive = true;
+            
+            // Hide outcome
+            document.getElementById('outcome-display').style.display = 'none';
+            
+            // Reset meteorite position
+            meteorite.position.set(meteoritePosition.x, meteoritePosition.y, meteoritePosition.z);
+            
+            // Clear trail
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute([], 3));
+            meteorite.trail.geometry = geometry;
+            
+            // Restart animation
+            animate();
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Initialize the simulation
+        init();
+    </script>
 </body>
 </html>
