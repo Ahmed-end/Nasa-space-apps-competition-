@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AstroGrow - Martian Agriculture Simulator</title>
+    <script src="https://cdn.jsdelivr.net/npm/recharts/umd/Recharts.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: linear-gradient(to bottom right, #7f1d1d, #991b1b, #9a3412);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script>
+        // Create Lucide icons
+        const createIcon = (iconName, classes = 'w-5 h-5') => {
+            const icons = {
+                Leaf: `<svg xmlns="http://www.w3.org/2000/svg" class="${classes}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>`,
+                Droplets: `<svg xmlns="http://www.w3.org/2000/svg" class="${classes}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/></svg>`,
+                Thermometer: `<svg xmlns="http://www.w3.org/2000/svg" class="${classes}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>`,
+                Sun: `<svg xmlns="http://www.w3.org/2000/svg" class="${classes}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>`,
+                AlertTriangle: `<svg xmlns="http://www.w3.org/2000/svg" class="${classes}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`,
+                CheckCircle: `<svg xmlns="http://www.w3.org/2000/svg" class="${classes}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>`,
+                Play: `<svg xmlns="http://www.w3.org/2000/svg" class="${classes}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>`,
+                Pause: `<svg xmlns="http://www.w3.org/2000/svg" class="${classes}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`,
+                RotateCcw: `<svg xmlns="http://www.w3.org/2000/svg" class="${classes}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>`
+            };
+            return icons[iconName] || '';
+        };
+
+        // Main App Component
+        const AstroGrow = () => {
+            // State simulation
+            let simulationState = {
+                day: 1,
+                isRunning: false,
+                crops: {
+                    potatoes: { health: 85, yield: 0, growthStage: 'seedling' },
+                    tomatoes: { health: 78, yield: 0, growthStage: 'flowering' },
+                    lettuce: { health: 92, yield: 12, growthStage: 'harvest' },
+                    soybeans: { health: 67, yield: 0, growthStage: 'germination' }
+                },
+                environment: {
+                    temperature: -63,
+                    humidity: 15,
+                    co2: 95.32,
+                    radiation: 0.24,
+                    soilMoisture: 45
+                },
+                resources: {
+                    water: 847,
+                    energy: 1250,
+                    fertilizer: 78,
+                    seeds: 156
+                }
+            };
+
+            const alerts = [
+                { type: 'warning', message: 'Radiation levels elevated - adjust shielding' },
+                { type: 'info', message: 'Potato growth optimal - maintain current conditions' },
+                { type: 'critical', message: 'Water reserves below 900L threshold' }
+            ];
+
+            const growthData = [
+                { day: 1, potatoes: 10, tomatoes: 8, lettuce: 15, soybeans: 5 },
+                { day: 7, potatoes: 25, tomatoes: 22, lettuce: 45, soybeans: 18 },
+                { day: 14, potatoes: 42, tomatoes: 38, lettuce: 78, soybeans: 35 },
+                { day: 21, potatoes: 58, tomatoes: 55, lettuce: 95, soybeans: 52 },
+                { day: 28, potatoes: 72, tomatoes: 68, lettuce: 88, soybeans: 67 }
+            ];
+
+            const yieldProjection = [
+                { crop: 'Potatoes', currentYield: 0, projectedYield: 85, calories: 12750 },
+                { crop: 'Tomatoes', currentYield: 0, projectedYield: 62, calories: 11160 },
+                { crop: 'Lettuce', currentYield: 12, projectedYield: 45, calories: 6750 },
+                { crop: 'Soybeans', currentYield: 0, projectedYield: 78, calories: 23400 }
+            ];
+
+            // Helper functions
+            const getAlertColor = (type) => {
+                switch(type) {
+                    case 'critical': return 'text-red-600 bg-red-50 border-red-200';
+                    case 'warning': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+                    case 'info': return 'text-blue-600 bg-blue-50 border-blue-200';
+                    default: return 'text-gray-600 bg-gray-50 border-gray-200';
+                }
+            };
+
+            const getHealthColor = (health) => {
+                if (health >= 80) return 'text-green-600';
+                if (health >= 60) return 'text-yellow-600';
+                return 'text-red-600';
+            };
+
+            // Simulation functions
+            const toggleSimulation = () => {
+                simulationState.isRunning = !simulationState.isRunning;
+                updateUI();
+                
+                if (simulationState.isRunning) {
+                    simulationInterval = setInterval(() => {
+                        simulationState.day += 1;
+                        simulationState.environment.temperature = Math.max(-80, Math.min(-40, simulationState.environment.temperature + (Math.random() - 0.5) * 4));
+                        simulationState.environment.humidity = Math.max(10, Math.min(25, simulationState.environment.humidity + (Math.random() - 0.5) * 3));
+                        simulationState.environment.radiation = Math.max(0.1, Math.min(0.4, simulationState.environment.radiation + (Math.random() - 0.5) * 0.05));
+                        simulationState.environment.soilMoisture = Math.max(30, Math.min(70, simulationState.environment.soilMoisture + (Math.random() - 0.5) * 8));
+                        simulationState.resources.water = Math.max(0, simulationState.resources.water - Math.random() * 12);
+                        simulationState.resources.energy = Math.max(0, simulationState.resources.energy - Math.random() * 25);
+                        
+                        updateUI();
+                    }, 2000);
+                } else {
+                    clearInterval(simulationInterval);
+                }
+            };
+
+            const resetSimulation = () => {
+                clearInterval(simulationInterval);
+                simulationState = {
+                    day: 1,
+                    isRunning: false,
+                    crops: {
+                        potatoes: { health: 85, yield: 0, growthStage: 'seedling' },
+                        tomatoes: { health: 78, yield: 0, growthStage: 'flowering' },
+                        lettuce: { health: 92, yield: 12, growthStage: 'harvest' },
+                        soybeans: { health: 67, yield: 0, growthStage: 'germination' }
+                    },
+                    environment: {
+                        temperature: -63,
+                        humidity: 15,
+                        co2: 95.32,
+                        radiation: 0.24,
+                        soilMoisture: 45
+                    },
+                    resources: {
+                        water: 847,
+                        energy: 1250,
+                        fertilizer: 78,
+                        seeds: 156
+                    }
+                };
+                updateUI();
+            };
+
+            let simulationInterval = null;
+
+            // Create the UI
+            const updateUI = () => {
+                const appDiv = document.getElementById('root');
+                
+                appDiv.innerHTML = `
+                    <div class="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-orange-900 p-6">
+                        <div class="max-w-7xl mx-auto">
+                            <header class="text-center mb-8">
+                                <div class="flex items-center justify-center mb-4">
+                                    <div class="w-16 h-16 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center mr-4">
+                                        ${createIcon('Leaf', 'w-8 h-8 text-white')}
+                                    </div>
+                                    <div>
+                                        <h1 class="text-4xl font-bold text-white">AstroGrow</h1>
+                                        <p class="text-orange-200">AI-Powered Martian Agriculture Simulator</p>
+                                    </div>
+                                </div>
+                                <p class="text-orange-100 max-w-3xl mx-auto">
+                                    Advanced machine learning simulation predicting crop yields, resource consumption, and survival strategies 
+                                    for sustainable food production on Mars using real NASA environmental data and hydroponics research.
+                                </p>
+                            </header>
+
+                            <!-- Control Panel -->
+                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8 border border-white/20">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h2 class="text-2xl font-bold text-white">Mission Control</h2>
+                                    <div class="flex items-center space-x-4">
+                                        <span class="text-white font-semibold">Sol ${simulationState.day}</span>
+                                        <button
+                                            onclick="toggleSimulation()"
+                                            class="flex items-center space-x-2 ${simulationState.isRunning ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'} text-white px-4 py-2 rounded-lg transition-colors"
+                                        >
+                                            ${simulationState.isRunning ? createIcon('Pause', 'w-4 h-4') : createIcon('Play', 'w-4 h-4')}
+                                            <span>${simulationState.isRunning ? 'Pause' : 'Start'} Simulation</span>
+                                        </button>
+                                        <button
+                                            onclick="resetSimulation()"
+                                            class="flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors"
+                                        >
+                                            ${createIcon('RotateCcw', 'w-4 h-4')}
+                                            <span>Reset</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                                <!-- Environmental Conditions -->
+                                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+                                    <h3 class="text-xl font-bold text-white mb-4 flex items-center">
+                                        ${createIcon('Thermometer', 'w-5 h-5 mr-2')}
+                                        Environmental Conditions
+                                    </h3>
+                                    <div class="space-y-4">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-orange-200">Temperature</span>
+                                            <span class="text-white font-semibold">${simulationState.environment.temperature.toFixed(1)}°C</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-orange-200">Humidity</span>
+                                            <span class="text-white font-semibold">${simulationState.environment.humidity.toFixed(1)}%</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-orange-200">CO₂ Level</span>
+                                            <span class="text-white font-semibold">${simulationState.environment.co2.toFixed(2)}%</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-orange-200">Radiation</span>
+                                            <span class="text-white font-semibold">${simulationState.environment.radiation.toFixed(3)} mSv/day</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-orange-200">Soil Moisture</span>
+                                            <span class="text-white font-semibold">${simulationState.environment.soilMoisture.toFixed(0)}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Resource Management -->
+                                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+                                    <h3 class="text-xl font-bold text-white mb-4 flex items-center">
+                                        ${createIcon('Droplets', 'w-5 h-5 mr-2')}
+                                        Resource Management
+                                    </h3>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <div class="flex justify-between items-center mb-1">
+                                                <span class="text-orange-200">Water</span>
+                                                <span class="text-white font-semibold">${simulationState.resources.water.toFixed(0)}L</span>
+                                            </div>
+                                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                                <div class="bg-blue-500 h-2 rounded-full" style="width: ${Math.min(100, (simulationState.resources.water / 1500) * 100)}%"></div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="flex justify-between items-center mb-1">
+                                                <span class="text-orange-200">Energy</span>
+                                                <span class="text-white font-semibold">${simulationState.resources.energy.toFixed(0)} kWh</span>
+                                            </div>
+                                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                                <div class="bg-yellow-500 h-2 rounded-full" style="width: ${Math.min(100, (simulationState.resources.energy / 2000) * 100)}%"></div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="flex justify-between items-center mb-1">
+                                                <span class="text-orange-200">Fertilizer</span>
+                                                <span class="text-white font-semibold">${simulationState.resources.fertilizer}kg</span>
+                                            </div>
+                                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                                <div class="bg-green-500 h-2 rounded-full" style="width: ${(simulationState.resources.fertilizer / 100) * 100}%"></div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="flex justify-between items-center mb-1">
+                                                <span class="text-orange-200">Seeds</span>
+                                                <span class="text-white font-semibold">${simulationState.resources.seeds} units</span>
+                                            </div>
+                                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                                <div class="bg-purple-500 h-2 rounded-full" style="width: ${(simulationState.resources.seeds / 200) * 100}%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Alerts -->
+                                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+                                    <h3 class="text-xl font-bold text-white mb-4 flex items-center">
+                                        ${createIcon('AlertTriangle', 'w-5 h-5 mr-2')}
+                                        System Alerts
+                                    </h3>
+                                    <div class="space-y-3">
+                                        ${alerts.map((alert, index) => `
+                                            <div key="${index}" class="p-3 rounded-lg border ${getAlertColor(alert.type)}">
+                                                <p class="text-sm font-medium">${alert.message}</p>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Crop Status -->
+                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8 border border-white/20">
+                                <h3 class="text-xl font-bold text-white mb-6">Crop Health Status</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                    ${Object.entries(simulationState.crops).map(([crop, data]) => `
+                                        <div key="${crop}" class="bg-white/5 rounded-lg p-4">
+                                            <h4 class="text-white font-semibold capitalize mb-2">${crop}</h4>
+                                            <div class="space-y-2">
+                                                <div class="flex justify-between">
+                                                    <span class="text-orange-200 text-sm">Health</span>
+                                                    <span class="font-semibold ${getHealthColor(data.health)}">${data.health}%</span>
+                                                </div>
+                                                <div class="flex justify-between">
+                                                    <span class="text-orange-200 text-sm">Yield</span>
+                                                    <span class="text-white font-semibold">${data.yield}kg</span>
+                                                </div>
+                                                <div class="flex justify-between">
+                                                    <span class="text-orange-200 text-sm">Stage</span>
+                                                    <span class="text-white font-semibold text-sm capitalize">${data.growthStage}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                            <!-- Growth Tracking Chart -->
+                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8 border border-white/20">
+                                <h3 class="text-xl font-bold text-white mb-6">Growth Tracking (28-Day Cycle)</h3>
+                                <div id="growth-chart" style="width: 100%; height: 300px;"></div>
+                            </div>
+
+                            <!-- Yield Projections -->
+                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+                                <h3 class="text-xl font-bold text-white mb-6">AI Yield Projections & Nutritional Analysis</h3>
+                                <div id="yield-chart" style="width: 100%; height: 300px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Initialize charts after a brief delay to allow DOM rendering
+                setTimeout(() => {
+                    initCharts();
+                }, 100);
+            };
+
+            // Initialize charts
+            const initCharts = () => {
+                // Growth Chart
+                const growthChart = Recharts.LineChart({
+                    width: document.getElementById('growth-chart').offsetWidth,
+                    height: 300,
+                    data: growthData,
+                    margin: { top: 5, right: 30, left: 20, bottom: 5 }
+                });
+                
+                growthChart.appendChild(Recharts.CartesianGrid({ strokeDasharray: '3 3', stroke: '#ffffff20' }));
+                growthChart.appendChild(Recharts.XAxis({ dataKey: 'day', stroke: '#ffffff80' }));
+                growthChart.appendChild(Recharts.YAxis({ stroke: '#ffffff80' }));
+                growthChart.appendChild(Recharts.Tooltip({ 
+                    contentStyle: { 
+                        backgroundColor: 'rgba(0,0,0,0.8)', 
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        borderRadius: '8px'
+                    }
+                }));
+                growthChart.appendChild(Recharts.Line({ type: 'monotone', dataKey: 'potatoes', stroke: '#8884d8', strokeWidth: 3 }));
+                growthChart.appendChild(Recharts.Line({ type: 'monotone', dataKey: 'tomatoes', stroke: '#82ca9d', strokeWidth: 3 }));
+                growthChart.appendChild(Recharts.Line({ type: 'monotone', dataKey: 'lettuce', stroke: '#ffc658', strokeWidth: 3 }));
+                growthChart.appendChild(Recharts.Line({ type: 'monotone', dataKey: 'soybeans', stroke: '#ff7300', strokeWidth: 3 }));
+                
+                document.getElementById('growth-chart').innerHTML = '';
+                document.getElementById('growth-chart').appendChild(growthChart);
+
+                // Yield Chart
+                const yieldChart = Recharts.BarChart({
+                    width: document.getElementById('yield-chart').offsetWidth,
+                    height: 300,
+                    data: yieldProjection,
+                    margin: { top: 5, right: 30, left: 20, bottom: 5 }
+                });
+                
+                yieldChart.appendChild(Recharts.CartesianGrid({ strokeDasharray: '3 3', stroke: '#ffffff20' }));
+                yieldChart.appendChild(Recharts.XAxis({ dataKey: 'crop', stroke: '#ffffff80' }));
+                yieldChart.appendChild(Recharts.YAxis({ stroke: '#ffffff80' }));
+                yieldChart.appendChild(Recharts.Tooltip({ 
+                    contentStyle: { 
+                        backgroundColor: 'rgba(0,0,0,0.8)', 
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        borderRadius: '8px'
+                    }
+                }));
+                yieldChart.appendChild(Recharts.Bar({ dataKey: 'projectedYield', fill: '#8884d8' }));
+                yieldChart.appendChild(Recharts.Bar({ dataKey: 'calories', fill: '#82ca9d' }));
+                
+                document.getElementById('yield-chart').innerHTML = '';
+                document.getElementById('yield-chart').appendChild(yieldChart);
+            };
+
+            // Initial render
+            updateUI();
+
+            // Make functions available globally
+            window.toggleSimulation = toggleSimulation;
+            window.resetSimulation = resetSimulation;
+        };
+
+        // Initialize the app when the page loads
+        document.addEventListener('DOMContentLoaded', AstroGrow);
+    </script>
+</body>
+</html>
