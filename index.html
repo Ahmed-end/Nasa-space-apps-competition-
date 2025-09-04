@@ -1,0 +1,326 @@
+import React, { useState, useEffect } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { Leaf, Droplets, Thermometer, Sun, AlertTriangle, CheckCircle, Play, Pause, RotateCcw } from 'lucide-react';
+
+const AstroGrow = () => {
+  const [simulation, setSimulation] = useState({
+    day: 1,
+    isRunning: false,
+    crops: {
+      potatoes: { health: 85, yield: 0, growthStage: 'seedling' },
+      tomatoes: { health: 78, yield: 0, growthStage: 'flowering' },
+      lettuce: { health: 92, yield: 12, growthStage: 'harvest' },
+      soybeans: { health: 67, yield: 0, growthStage: 'germination' }
+    },
+    environment: {
+      temperature: -63, // Celsius
+      humidity: 15,
+      co2: 95.32,
+      radiation: 0.24,
+      soilMoisture: 45
+    },
+    resources: {
+      water: 847,
+      energy: 1250,
+      fertilizer: 78,
+      seeds: 156
+    }
+  });
+
+  const [alerts, setAlerts] = useState([
+    { type: 'warning', message: 'Radiation levels elevated - adjust shielding' },
+    { type: 'info', message: 'Potato growth optimal - maintain current conditions' },
+    { type: 'critical', message: 'Water reserves below 900L threshold' }
+  ]);
+
+  const [growthData, setGrowthData] = useState([
+    { day: 1, potatoes: 10, tomatoes: 8, lettuce: 15, soybeans: 5 },
+    { day: 7, potatoes: 25, tomatoes: 22, lettuce: 45, soybeans: 18 },
+    { day: 14, potatoes: 42, tomatoes: 38, lettuce: 78, soybeans: 35 },
+    { day: 21, potatoes: 58, tomatoes: 55, lettuce: 95, soybeans: 52 },
+    { day: 28, potatoes: 72, tomatoes: 68, lettuce: 88, soybeans: 67 }
+  ]);
+
+  const [yieldProjection, setYieldProjection] = useState([
+    { crop: 'Potatoes', currentYield: 0, projectedYield: 85, calories: 12750 },
+    { crop: 'Tomatoes', currentYield: 0, projectedYield: 62, calories: 11160 },
+    { crop: 'Lettuce', currentYield: 12, projectedYield: 45, calories: 6750 },
+    { crop: 'Soybeans', currentYield: 0, projectedYield: 78, calories: 23400 }
+  ]);
+
+  useEffect(() => {
+    let interval;
+    if (simulation.isRunning) {
+      interval = setInterval(() => {
+        setSimulation(prev => ({
+          ...prev,
+          day: prev.day + 1,
+          environment: {
+            ...prev.environment,
+            temperature: Math.max(-80, Math.min(-40, prev.environment.temperature + (Math.random() - 0.5) * 4)),
+            humidity: Math.max(10, Math.min(25, prev.environment.humidity + (Math.random() - 0.5) * 3)),
+            radiation: Math.max(0.1, Math.min(0.4, prev.environment.radiation + (Math.random() - 0.5) * 0.05)),
+            soilMoisture: Math.max(30, Math.min(70, prev.environment.soilMoisture + (Math.random() - 0.5) * 8))
+          },
+          resources: {
+            ...prev.resources,
+            water: Math.max(0, prev.resources.water - Math.random() * 12),
+            energy: Math.max(0, prev.resources.energy - Math.random() * 25)
+          }
+        }));
+      }, 2000);
+    }
+    return () => clearInterval(interval);
+  }, [simulation.isRunning]);
+
+  const toggleSimulation = () => {
+    setSimulation(prev => ({ ...prev, isRunning: !prev.isRunning }));
+  };
+
+  const resetSimulation = () => {
+    setSimulation(prev => ({ 
+      ...prev, 
+      day: 1, 
+      isRunning: false,
+      environment: {
+        temperature: -63,
+        humidity: 15,
+        co2: 95.32,
+        radiation: 0.24,
+        soilMoisture: 45
+      },
+      resources: {
+        water: 847,
+        energy: 1250,
+        fertilizer: 78,
+        seeds: 156
+      }
+    }));
+  };
+
+  const getAlertColor = (type) => {
+    switch(type) {
+      case 'critical': return 'text-red-600 bg-red-50 border-red-200';
+      case 'warning': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'info': return 'text-blue-600 bg-blue-50 border-blue-200';
+      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  };
+
+  const getHealthColor = (health) => {
+    if (health >= 80) return 'text-green-600';
+    if (health >= 60) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-orange-900 p-6">
+      <div className="max-w-7xl mx-auto">
+        <header className="text-center mb-8">
+          <div className="flex items-center justify-center mb-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center mr-4">
+              <Leaf className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold text-white">AstroGrow</h1>
+              <p className="text-orange-200">AI-Powered Martian Agriculture Simulator</p>
+            </div>
+          </div>
+          <p className="text-orange-100 max-w-3xl mx-auto">
+            Advanced machine learning simulation predicting crop yields, resource consumption, and survival strategies 
+            for sustainable food production on Mars using real NASA environmental data and hydroponics research.
+          </p>
+        </header>
+
+        {/* Control Panel */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8 border border-white/20">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-white">Mission Control</h2>
+            <div className="flex items-center space-x-4">
+              <span className="text-white font-semibold">Sol {simulation.day}</span>
+              <button
+                onClick={toggleSimulation}
+                className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                {simulation.isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                <span>{simulation.isRunning ? 'Pause' : 'Start'} Simulation</span>
+              </button>
+              <button
+                onClick={resetSimulation}
+                className="flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Reset</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          {/* Environmental Conditions */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+            <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+              <Thermometer className="w-5 h-5 mr-2" />
+              Environmental Conditions
+            </h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-orange-200">Temperature</span>
+                <span className="text-white font-semibold">{simulation.environment.temperature.toFixed(1)}°C</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-orange-200">Humidity</span>
+                <span className="text-white font-semibold">{simulation.environment.humidity.toFixed(1)}%</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-orange-200">CO₂ Level</span>
+                <span className="text-white font-semibold">{simulation.environment.co2.toFixed(2)}%</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-orange-200">Radiation</span>
+                <span className="text-white font-semibold">{simulation.environment.radiation.toFixed(3)} mSv/day</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-orange-200">Soil Moisture</span>
+                <span className="text-white font-semibold">{simulation.environment.soilMoisture.toFixed(0)}%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Resource Management */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+            <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+              <Droplets className="w-5 h-5 mr-2" />
+              Resource Management
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-orange-200">Water</span>
+                  <span className="text-white font-semibold">{simulation.resources.water.toFixed(0)}L</span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${Math.min(100, (simulation.resources.water / 1500) * 100)}%` }}></div>
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-orange-200">Energy</span>
+                  <span className="text-white font-semibold">{simulation.resources.energy.toFixed(0)} kWh</span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div className="bg-yellow-500 h-2 rounded-full" style={{ width: `${Math.min(100, (simulation.resources.energy / 2000) * 100)}%` }}></div>
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-orange-200">Fertilizer</span>
+                  <span className="text-white font-semibold">{simulation.resources.fertilizer}kg</span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div className="bg-green-500 h-2 rounded-full" style={{ width: `${(simulation.resources.fertilizer / 100) * 100}%` }}></div>
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-orange-200">Seeds</span>
+                  <span className="text-white font-semibold">{simulation.resources.seeds} units</span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${(simulation.resources.seeds / 200) * 100}%` }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Alerts */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+            <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+              <AlertTriangle className="w-5 h-5 mr-2" />
+              System Alerts
+            </h3>
+            <div className="space-y-3">
+              {alerts.map((alert, index) => (
+                <div key={index} className={`p-3 rounded-lg border ${getAlertColor(alert.type)}`}>
+                  <p className="text-sm font-medium">{alert.message}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Crop Status */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8 border border-white/20">
+          <h3 className="text-xl font-bold text-white mb-6">Crop Health Status</h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {Object.entries(simulation.crops).map(([crop, data]) => (
+              <div key={crop} className="bg-white/5 rounded-lg p-4">
+                <h4 className="text-white font-semibold capitalize mb-2">{crop}</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-orange-200 text-sm">Health</span>
+                    <span className={`font-semibold ${getHealthColor(data.health)}`}>{data.health}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-orange-200 text-sm">Yield</span>
+                    <span className="text-white font-semibold">{data.yield}kg</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-orange-200 text-sm">Stage</span>
+                    <span className="text-white font-semibold text-sm capitalize">{data.growthStage}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Growth Tracking Chart */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8 border border-white/20">
+          <h3 className="text-xl font-bold text-white mb-6">Growth Tracking (28-Day Cycle)</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={growthData}>
+              <CartesianGrid strokeDasharray="3,3" stroke="#ffffff20" />
+              <XAxis dataKey="day" stroke="#ffffff80" />
+              <YAxis stroke="#ffffff80" />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'rgba(0,0,0,0.8)', 
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '8px'
+                }}
+              />
+              <Line type="monotone" dataKey="potatoes" stroke="#8884d8" strokeWidth={3} />
+              <Line type="monotone" dataKey="tomatoes" stroke="#82ca9d" strokeWidth={3} />
+              <Line type="monotone" dataKey="lettuce" stroke="#ffc658" strokeWidth={3} />
+              <Line type="monotone" dataKey="soybeans" stroke="#ff7300" strokeWidth={3} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Yield Projections */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+          <h3 className="text-xl font-bold text-white mb-6">AI Yield Projections & Nutritional Analysis</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={yieldProjection}>
+              <CartesianGrid strokeDasharray="3,3" stroke="#ffffff20" />
+              <XAxis dataKey="crop" stroke="#ffffff80" />
+              <YAxis stroke="#ffffff80" />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'rgba(0,0,0,0.8)', 
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '8px'
+                }}
+              />
+              <Bar dataKey="projectedYield" fill="#8884d8" />
+              <Bar dataKey="calories" fill="#82ca9d" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AstroGrow; 
